@@ -426,3 +426,114 @@ Reporting and insights: Dashboards provide a comprehensive view of SLA adherence
 
 
 
+**Velero for backup**
+
+for reference browse the **Run velero in AWS** in google 
+
+velero is need to be install in local/ec2 instance which is Client and another is manager which is to EKS for making backups 
+
+
+Firstly create the service user in AWS IAM account for to use the access and secret keys to EKS backups 
+create the AWS user for velero and attache policy and create the access and secret keys 
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeVolumes",
+                "ec2:DescribeSnapshots",
+                "ec2:CreateTags",
+                "ec2:CreateVolume",
+                "ec2:CreateSnapshot",
+                "ec2:DeleteSnapshot"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:DeleteObject",
+                "s3:PutObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts"
+            ],
+            "Resource": [
+                "arn:aws:s3:::velero-backup-wanderlust/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::velero-backup-wanderlust"
+            ]
+        }
+    ]
+}
+
+
+create the S3 buckets and take arn of bucket and give in the policy , and also make S3 bucket public and enable versioning 
+
+Create a file in the ec2 instance/local for the access keys of velero 
+
+vi velero-credentials  
+
+[default]
+aws_access_key_id=<AWS_ACCESS_KEY_ID>
+aws_secret_access_key=<AWS_SECRET_ACCESS_KEY>
+
+
+Install the velero in the manager means EKS 
+
+velero install \
+    --provider aws \
+    --plugins velero/velero-plugin-for-aws:v1.9.0 \
+    --bucket velero-backup-wanderlust \
+    --secret-file ./credentials-velero \
+    --backup-location-config region=ap-south-1 \
+    --snapshot-location-config region=ap-south-1
+
+We can see after it installing in Namespaces 
+
+kubectl get ns 
+
+--> make kubectl -n velero get all
+
+let wait for the pod is running 
+
+As per the project is running , now we need to take backup to S3 bucket 
+
+kubectl backup create three-tier-backup --include-namespaces three-tier
+
+here 
+three-tier-backup ----> name to S3 bucket to identify
+three-tier ----> name of the application deployment 
+
+we can see the backups in S3 bucket 
+
+now try to delete the application namespane 
+
+kubectl delete ns three-tier ---> application will delete 
+
+we can restore it in to the same EKS cluster 
+
+give command
+
+velero get backups
+
+we can see the all backups
+
+velero restore create --from-backup three-tier
+
+we can see the three-tier namespace in the namespaces 
+
+
+
+
+
+
