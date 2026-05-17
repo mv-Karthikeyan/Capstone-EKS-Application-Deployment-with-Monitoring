@@ -99,77 +99,205 @@ kubectl delete -f .
 <img width="950" height="357" alt="image" src="https://github.com/user-attachments/assets/9c3c4d0d-41ff-4fe0-ab2e-b3287231d673" />
 
 ### Step 10: Install prometheus and Grafana
-Run them in this exact order.
+# Monitoring Setup on EKS using Helm
 
-1. Add Prometheus repo
+This guide explains how to install Prometheus and Grafana on an EKS cluster using Helm.
+
+---
+
+# Prerequisites
+
+- EKS Cluster running
+- kubectl configured
+- Helm installed
+
+Verify cluster access:
+
+```bash
+kubectl get nodes
+```
+
+---
+
+# 1. Add Prometheus Helm Repository
+
+```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-2. Update repos
+```
+
+---
+
+# 2. Update Helm Repositories
+
+```bash
 helm repo update
-3. Create monitoring namespace
+```
+
+---
+
+# 3. Create Monitoring Namespace
+
+```bash
 kubectl create namespace monitoring
-4. Install Prometheus
+```
+
+---
+
+# 4. Install Prometheus
+
+```bash
 helm install prometheus prometheus-community/prometheus -n monitoring
-5. Upgrade Prometheus service to LoadBalancer
+```
+
+---
+
+# 5. Expose Prometheus using LoadBalancer
+
+```bash
 helm upgrade prometheus prometheus-community/prometheus \
   -n monitoring \
   --set server.service.type=LoadBalancer \
   --set server.persistentVolume.enabled=false \
   --set alertmanager.persistentVolume.enabled=false
+```
 
-This exposes Prometheus externally.
+This exposes Prometheus externally through an AWS LoadBalancer.
 
-6. Add Grafana repo
+---
+
+# 6. Add Grafana Helm Repository
+
+```bash
 helm repo add grafana https://grafana.github.io/helm-charts
-7. Update repos again
+```
+
+---
+
+# 7. Update Helm Repositories Again
+
+```bash
 helm repo update
-8. Install Grafana
+```
+
+---
+
+# 8. Install Grafana
+
+```bash
 helm install grafana grafana/grafana \
   --namespace monitoring \
   --set service.type=LoadBalancer \
   --set persistence.enabled=false \
   --set adminUser=admin \
   --set adminPassword=admin123
-9. Verify pods
+```
+
+---
+
+# 9. Verify Monitoring Pods
+
+```bash
 kubectl get pods -n monitoring
+```
 
-Wait until all become:
-
-Running
-10. Get external URLs
-kubectl get svc -n monitoring
-
-Look for:
-
-EXTERNAL-IP
+Wait until all pods are in `Running` state.
 
 Example:
 
-a1b2c3.amazonaws.com
-11. Open in browser
-Prometheus
+```text
+NAME                                                     READY   STATUS    RESTARTS   AGE
+grafana-xxxxxxxxxx-xxxxx                                 1/1     Running   0          2m
+prometheus-server-xxxxxxxxxx-xxxxx                       2/2     Running   0          5m
+```
+
+---
+
+# 10. Get External LoadBalancer URLs
+
+```bash
+kubectl get svc -n monitoring
+```
+
+Look for the `EXTERNAL-IP` column.
+
+Example:
+
+```text
+NAME                TYPE           CLUSTER-IP       EXTERNAL-IP
+grafana             LoadBalancer   10.100.135.2    a1b2c3.amazonaws.com
+prometheus-server   LoadBalancer   10.100.6.109    d4e5f6.amazonaws.com
+```
+
+---
+
+# 11. Access Monitoring Dashboards
+
+## Prometheus
+
+```text
 http://<prometheus-external-ip>
-Grafana
+```
+
+## Grafana
+
+```text
 http://<grafana-external-ip>
+```
 
-Login:
+### Grafana Login Credentials
 
-username: admin
-password: admin123
-12. If EXTERNAL-IP shows pending
+```text
+Username: admin
+Password: admin123
+```
 
-This means AWS LoadBalancer is still creating.
+---
 
-Wait a few minutes and recheck:
+# 12. If EXTERNAL-IP Shows Pending
 
+AWS LoadBalancer creation may take a few minutes.
+
+Recheck services:
+
+```bash
 kubectl get svc -n monitoring
-13. Useful verification commands
-Helm releases
+```
+
+---
+
+# 13. Useful Verification Commands
+
+## Check Helm Releases
+
+```bash
 helm list -n monitoring
-Services
-kubectl get svc -n monitoring
-Pods
-kubectl get pods -n monitoring
+```
 
+## Check Services
+
+```bash
+kubectl get svc -n monitoring
+```
+
+## Check Pods
+
+```bash
+kubectl get pods -n monitoring
+```
+
+---
+
+# Monitoring Architecture
+
+```text
+EKS Cluster
+   ↓
+Application Pods
+   ↓
+Prometheus collects metrics
+   ↓
+Grafana visualizes metrics
+```
 ## ⚙️ Jenkins configuration
 
 ---
