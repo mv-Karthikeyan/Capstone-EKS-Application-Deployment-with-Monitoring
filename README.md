@@ -71,8 +71,15 @@ eksctl version
 
 ### Step 8: Setup EKS Cluster
 ``` shell
-eksctl create cluster --name three-tier-cluster --region us-west-2 --node-type t2.medium --nodes-min 2 --nodes-max 2
-aws eks update-kubeconfig --region us-west-2 --name three-tier-cluster
+eksctl create cluster \
+--name three-tier-cluster \
+--region ap-south-1 \
+--version 1.31 \
+--node-type t3.small \
+--nodes 2 \
+--managed \
+--timeout 60m
+aws eks update-kubeconfig --region ap-south-1 --name three-tier-cluster
 kubectl get nodes
 ```
 <img width="941" height="459" alt="image (2)" src="https://github.com/user-attachments/assets/4570952b-5cf5-472b-8dcf-9d1e403bb426" />
