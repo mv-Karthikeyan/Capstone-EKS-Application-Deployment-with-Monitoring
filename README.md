@@ -99,26 +99,76 @@ kubectl delete -f .
 <img width="950" height="357" alt="image" src="https://github.com/user-attachments/assets/9c3c4d0d-41ff-4fe0-ab2e-b3287231d673" />
 
 ### Step 10: Install prometheus and Grafana
-``` shell
+Run them in this exact order.
+
+1. Add Prometheus repo
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+2. Update repos
+helm repo update
+3. Create monitoring namespace
+kubectl create namespace monitoring
+4. Install Prometheus
 helm install prometheus prometheus-community/prometheus -n monitoring
-```
-``` shell
+5. Upgrade Prometheus service to LoadBalancer
 helm upgrade prometheus prometheus-community/prometheus \
   -n monitoring \
   --set server.service.type=LoadBalancer \
   --set server.persistentVolume.enabled=false \
   --set alertmanager.persistentVolume.enabled=false
-```
-``` shell
+
+This exposes Prometheus externally.
+
+6. Add Grafana repo
 helm repo add grafana https://grafana.github.io/helm-charts
+7. Update repos again
 helm repo update
+8. Install Grafana
 helm install grafana grafana/grafana \
   --namespace monitoring \
   --set service.type=LoadBalancer \
   --set persistence.enabled=false \
   --set adminUser=admin \
   --set adminPassword=admin123
-```
+9. Verify pods
+kubectl get pods -n monitoring
+
+Wait until all become:
+
+Running
+10. Get external URLs
+kubectl get svc -n monitoring
+
+Look for:
+
+EXTERNAL-IP
+
+Example:
+
+a1b2c3.amazonaws.com
+11. Open in browser
+Prometheus
+http://<prometheus-external-ip>
+Grafana
+http://<grafana-external-ip>
+
+Login:
+
+username: admin
+password: admin123
+12. If EXTERNAL-IP shows pending
+
+This means AWS LoadBalancer is still creating.
+
+Wait a few minutes and recheck:
+
+kubectl get svc -n monitoring
+13. Useful verification commands
+Helm releases
+helm list -n monitoring
+Services
+kubectl get svc -n monitoring
+Pods
+kubectl get pods -n monitoring
 
 ## ⚙️ Jenkins configuration
 
